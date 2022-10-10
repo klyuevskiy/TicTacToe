@@ -9,6 +9,7 @@ public class Player {
     private Connection connection;
     private int playerNumber = 0;
 
+    private static int startXOIndex = 3;
     final ThreadLocalRandom random = ThreadLocalRandom.current();
 
     public Player(Connection connection) {
@@ -37,7 +38,9 @@ public class Player {
         while ((xoTable = getXOTable()) != null) {
             // столбец 2 != номеру нашего значит походил прошлый
             if (xoTable.getInt(2) != playerNumber) {
-                makeMove(xoTable);
+                int[] xoTableArr = xoTableToArray(xoTable);
+                if (!checkWinner(xoTableArr))
+                    makeMove(xoTableArr);
             }
             try {
                 Thread.sleep(1000);
@@ -47,16 +50,7 @@ public class Player {
         }
     }
 
-    private void makeMove(ResultSet xoTable) throws SQLException {
-        int[] xoTableArr = xoTableToArray(xoTable);
-        // уже есть победитель
-        int winner = checkWinner(xoTableArr);
-        if (winner != 0){
-            System.out.printf("Победил игрок %d\n", 3 - playerNumber);
-            dropXOTable();
-            return;
-        }
-
+    private void makeMove(int[] xoTableArr) throws SQLException {
         ArrayList<Integer> moveOptions = getMoveOptions(xoTableArr);
         // нет ходов => ничья
         if (moveOptions.isEmpty()){
@@ -73,8 +67,8 @@ public class Player {
 
     private int[] xoTableToArray(ResultSet xoTable) throws SQLException {
         int[] arr = new int[9];
-        for (int i = 3; i < 3 + 9; i++){
-            arr[i - 3] = xoTable.getInt(i);
+        for (int i = startXOIndex; i < startXOIndex + 9; i++){
+            arr[i - startXOIndex] = xoTable.getInt(i);
         }
         return arr;
     }
@@ -88,8 +82,18 @@ public class Player {
         statement.execute("update xoTable set playerNumber = " + playerNumber);
     }
 
+    private boolean checkWinner(int[] xoTableArr) throws SQLException {
+        int winner = determineWinner(xoTableArr);
+        if (winner != 0){
+            System.out.printf("Победил игрок %d\n", winner);
+            dropXOTable();
+            return true;
+        }
+        return false;
+    }
+
     // return 1, 2 or 0, 1,2 - winner, 0 - not winners
-    private int checkWinner(int[] xoTableArr){
+    private int determineWinner(int[] xoTableArr){
         // верхняя строка
         if (xoTableArr[0] == xoTableArr[1] && xoTableArr[1] == xoTableArr[2])
             return xoTableArr[0];
@@ -130,7 +134,7 @@ public class Player {
         for (int i = 0; i < 9; i++){
             // null convert to 0, null => empty cell
             if (xoTableArr[i] == 0)
-                moveOptions.add(i + 3);
+                moveOptions.add(i);
         }
         return moveOptions;
     }
@@ -194,23 +198,16 @@ public class Player {
     private ResultSet createXOTable(Statement statement)  throws SQLException {
         statement.execute("create table XOTable" +
                 "(playersNumber int, playerNumber int," +
+                "\"0\" int, \"1\" int, \"2\" int," +
                 "\"3\" int, \"4\" int, \"5\" int," +
-                "\"6\" int, \"7\" int, \"8\" int," +
-                "\"9\" int, \"10\" int, \"11\" int)");
+                "\"6\" int, \"7\" int, \"8\" int)");
 
-        statement.execute("insert into XOTable values(" +
-                "1, 1," +
-                "null, null, null," +
-                "null, 1, null," +
-                "null, null, null)");
+        statement.execute("insert into XOTable(playerNumbers, playerNumber) values(" +
+                "1, 1,");
 
-        ResultSet xoTable = statement.executeQuery("select * from XOTable");
-        // уже сделал ход, надо отобразить таблицу
-        xoTable.next();
-        System.out.println("1 игрок начал игру");
-        showXOTable(xoTable);
-        System.out.println();
         playerNumber = 1;
+        ResultSet xoTable = getXOTable();
+        makeMove(xoTableToArray(xoTable));
 
         return xoTable;
     }
