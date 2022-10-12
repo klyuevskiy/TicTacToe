@@ -8,7 +8,6 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Player {
     private Connection connection;
     private int playerNumber = 0;
-
     private static int startXOIndex = 3;
     final ThreadLocalRandom random = ThreadLocalRandom.current();
 
@@ -20,13 +19,14 @@ public class Player {
     public void start() throws SQLException {
         ResultSet xoTable = checkTable();
 
+        int playersNumber = getPlayersNumber(xoTable);
         // 3 лишний
-        if (!isCorrectPlayersNumber(xoTable)){
+        if (playersNumber >= 2){
             System.out.println("В игру играют уже 2 игрока");
             return;
         }
+        setPlayerNumber(playersNumber + 1);
 
-        setPlayerNumber();
         play();
     }
 
@@ -37,7 +37,7 @@ public class Player {
         // пока таблица есть, то продолжаем играть
         while ((xoTable = getXOTable()) != null) {
             // столбец 2 != номеру нашего значит походил прошлый
-            if (xoTable.getInt(2) != playerNumber) {
+            if (xoTable.getInt("playerNumber") != playerNumber) {
                 int[] xoTableArr = xoTableToArray(xoTable);
                 if (!checkWinner(xoTableArr))
                     makeMove(xoTableArr);
@@ -178,15 +178,15 @@ public class Player {
         return xoTable;
     }
 
-    private boolean isCorrectPlayersNumber(ResultSet xoTable) throws SQLException{
-        return xoTable.getInt(1) < 2;
+    private int getPlayersNumber(ResultSet xoTable) throws SQLException{
+        return xoTable.getInt(1);
     }
 
-    private void setPlayerNumber() throws SQLException{
-        if (playerNumber == 0) {
-            playerNumber = 2;
+    private void setPlayerNumber(int playerNumber) throws SQLException{
+        if (this.playerNumber == 0){
+            this.playerNumber = playerNumber;
             Statement statement = connection.createStatement();
-            statement.execute("update xoTable set playersNumber = 2");
+            statement.execute("update xoTable set playersNumber= " + playerNumber);
         }
     }
 
