@@ -139,20 +139,28 @@ public class Player {
         return moveOptions;
     }
 
+    private String getXOTableCell(ResultSet xoTable, int index) throws SQLException {
+        int playerNumber = xoTable.getInt(index);
+        if (playerNumber == 0)
+            return "-";
+        if (playerNumber == 1)
+            return "x";
+        return "o";
+    }
     private void showXOTable(ResultSet xoTable) throws SQLException {
         System.out.printf(
-                "|%d|%d|%d|\n" +
-                "|%d|%d|%d|\n" +
-                "|%d|%d|%d|\n",
-                xoTable.getInt(3),
-                xoTable.getInt(4),
-                xoTable.getInt(5),
-                xoTable.getInt(6),
-                xoTable.getInt(7),
-                xoTable.getInt(8),
-                xoTable.getInt(9),
-                xoTable.getInt(10),
-                xoTable.getInt(11)
+                "|%s|%s|%s|\n" +
+                "|%s|%s|%s|\n" +
+                "|%s|%s|%s|\n",
+                getXOTableCell(xoTable, 3),
+                getXOTableCell(xoTable, 4),
+                getXOTableCell(xoTable, 5),
+                getXOTableCell(xoTable, 6),
+                getXOTableCell(xoTable, 7),
+                getXOTableCell(xoTable, 8),
+                getXOTableCell(xoTable, 9),
+                getXOTableCell(xoTable, 10),
+                getXOTableCell(xoTable, 11)
         );
     }
 
@@ -183,27 +191,23 @@ public class Player {
     }
 
     private ResultSet checkTable() throws SQLException{
-        Statement statement = connection.createStatement();
-        ResultSet xoTable;
+        ResultSet xoTable = getXOTable();
 
-        try{
-            xoTable = statement.executeQuery("select * from XOTable");
-            xoTable.next();
-        } catch (SQLException sqlException){
-            xoTable = createXOTable(statement);
-        }
+        if (xoTable == null)
+            xoTable = createXOTable();
 
         return xoTable;
     }
-    private ResultSet createXOTable(Statement statement)  throws SQLException {
+    private ResultSet createXOTable()  throws SQLException {
+        Statement statement = connection.createStatement();
         statement.execute("create table XOTable" +
                 "(playersNumber int, playerNumber int," +
                 "\"0\" int, \"1\" int, \"2\" int," +
                 "\"3\" int, \"4\" int, \"5\" int," +
                 "\"6\" int, \"7\" int, \"8\" int)");
 
-        statement.execute("insert into XOTable(playerNumbers, playerNumber) values(" +
-                "1, 1,");
+        statement.execute("insert into XOTable(playersNumber, playerNumber) values(" +
+                "1, 1)");
 
         playerNumber = 1;
         ResultSet xoTable = getXOTable();
